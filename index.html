@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>드림페어 소개 HTML 메이커</title>
+<style>
+  :root{
+    --ink:#2b2730; --sub:#7d7483; --line:#ebe4ee; --paper:#fffefe; --soft:#f7f2f6; --point:#d4769a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--soft);color:var(--ink);font-size:14px}
+  header.top{height:60px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--paper)}
+  header.top h1{font-size:17px;margin:0;letter-spacing:-.01em}
+  header.top h1 span{color:var(--point)}
+  header.top .meta{font-size:12px;color:var(--sub)}
+  .layout{display:grid;grid-template-columns:minmax(330px,420px) 1fr;height:calc(100vh - 60px)}
+  .editor{overflow:auto;padding:8px 22px 80px;background:var(--paper);border-right:1px solid var(--line)}
+  .preview{display:flex;flex-direction:column;padding:16px;gap:12px;min-width:0}
+  .stage{flex:1;display:flex;justify-content:center;min-height:0}
+  iframe{width:100%;height:100%;border:1px solid var(--line);border-radius:14px;background:#fff;transition:width .25s}
+  .stage.mobile iframe{width:390px}
+  #code{width:100%;height:100%;border:1px solid var(--line);border-radius:14px;padding:14px;font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;resize:none;background:#1f1d24;color:#e9e4ee}
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr;height:auto}
+    .editor{border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+    .stage{height:78vh;flex:none}
+  }
+  details{border-bottom:1px solid var(--line);padding:4px 0 14px}
+  summary{cursor:pointer;font-weight:700;font-size:15px;padding:12px 0 4px;list-style:none;display:flex;justify-content:space-between}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:'＋';color:var(--sub);font-weight:400}
+  details[open] summary::after{content:'－'}
+  label{display:block;font-size:12.5px;color:var(--sub);margin:12px 0 5px}
+  input[type=text],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
+  input[type=text]:focus,textarea:focus,select:focus{outline:2px solid color-mix(in srgb,var(--point) 35%,transparent);border-color:var(--point)}
+  textarea{min-height:76px;resize:vertical;line-height:1.6}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .img-row{display:flex;gap:6px}
+  .hint{font-size:12px;color:var(--sub);margin:6px 0 0}
+  .hint button{border:0;background:none;color:var(--point);cursor:pointer;font:inherit;padding:0 0 0 4px;text-decoration:underline}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;font:inherit;cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:var(--point)}
+  .btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+  .btn.primary:hover{background:#000}
+  .btn.small{padding:6px 10px;font-size:12.5px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .toolbar .spacer{flex:1}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:90px}
+  .seg button.on{border-color:var(--ink);background:var(--ink);color:#fff}
+  .swatches{display:flex;gap:6px;flex-wrap:wrap}
+  .swatch{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 6px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;font:inherit;font-size:12.5px}
+  .swatch i{width:16px;height:16px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+  .colors{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .colors label{margin:8px 0 4px;text-align:center}
+  input[type=color]{width:100%;height:36px;border:1px solid var(--line);border-radius:9px;padding:2px;background:#fff;cursor:pointer}
+  .qa-item{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;background:#fcfafc}
+  .qa-item .qa-top{display:flex;gap:6px}
+  .qa-item textarea{margin-top:6px;min-height:56px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .bottom-actions{display:flex;gap:8px;margin-top:18px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>드림페어 소개 <span>HTML 메이커</span></h1>
+  <span class="meta">입력하면 오른쪽에 바로 반영돼요 · 자동 저장</span>
+</header>
+
+<main class="layout">
+  <section class="editor">
+
+    <details open>
+      <summary>기본 정보</summary>
+      <label for="pairName">페어명</label>
+      <input type="text" id="pairName" placeholder="예) 새벽과 등불">
+      <label for="tagline">한 줄 소개</label>
+      <input type="text" id="tagline" placeholder="페어를 한 문장으로">
+    </details>
+
+    <details open>
+      <summary>드림캐 (캐릭터)</summary>
+      <div class="row">
+        <div><label for="aName">이름</label><input type="text" id="aName"></div>
+        <div><label for="aSub">작품명</label><input type="text" id="aSub"></div>
+      </div>
+      <label for="aImg">이미지</label>
+      <div class="img-row">
+        <input type="text" id="aImg" placeholder="이미지 주소 (https://...)">
+        <button type="button" class="btn small" data-pick="aImg">파일</button>
+        <input type="file" id="aImgFile" accept="image/*" hidden>
+      </div>
+      <p class="hint" id="aImgNote"></p>
+      <label for="aDesc">소개</label>
+      <textarea id="aDesc"></textarea>
+      <label for="aCall">드림주를 부르는 호칭</label>
+      <input type="text" id="aCall" placeholder="예) 아가씨">
+    </details>
+
+    <details open>
+      <summary>드림주</summary>
+      <div class="row">
+        <div><label for="bName">이름</label><input type="text" id="bName"></div>
+        <div><label for="bSub">한 줄 설정</label><input type="text" id="bSub" placeholder="선택"></div>
+      </div>
+      <label for="bImg">이미지</label>
+      <div class="img-row">
+        <input type="text" id="bImg" placeholder="이미지 주소 (https://...)">
+        <button type="button" class="btn small" data-pick="bImg">파일</button>
+        <input type="file" id="bImgFile" accept="image/*" hidden>
+      </div>
+      <p class="hint" id="bImgNote"></p>
+      <label for="bDesc">소개</label>
+      <textarea id="bDesc"></textarea>
+      <label for="bCall">캐릭터를 부르는 호칭</label>
+      <input type="text" id="bCall" placeholder="예) 선배">
+    </details>
+
+    <details open>
+      <summary>관계</summary>
+      <div class="row">
+        <div>
+          <label for="symbol">연결 기호</label>
+          <select id="symbol">
+            <option>♥</option><option>✦</option><option>∞</option><option>☾</option>
+            <option>✿</option><option>＆</option><option>✕</option><option>⚘</option>
+          </select>
+        </div>
+        <div><label for="anniversary">기념일</label><input type="text" id="anniversary" placeholder="예) 2024.03.14"></div>
+      </div>
+      <label for="keywords">관계 키워드 <small>(쉼표로 구분)</small></label>
+      <input type="text" id="keywords" placeholder="예) 쌍방구원, 계약연애, 소꿉친구">
+      <label for="story">관계 설명 / 서사</label>
+      <textarea id="story" style="min-height:120px"></textarea>
+      <label for="quote">대표 대사</label>
+      <textarea id="quote" style="min-height:56px"></textarea>
+      <label for="quoteBy">대사 주인</label>
+      <input type="text" id="quoteBy" placeholder="비워두면 표시 안 됨">
+    </details>
+
+    <details>
+      <summary>페어 문답</summary>
+      <div id="qaList"></div>
+      <button type="button" class="btn small" id="addQa" style="margin-top:10px">＋ 문답 추가</button>
+    </details>
+
+    <details open>
+      <summary>디자인</summary>
+      <label>템플릿</label>
+      <div class="seg" id="tplSeg">
+        <button type="button" class="btn small" data-tpl="card">카드</button>
+        <button type="button" class="btn small" data-tpl="letter">편지</button>
+        <button type="button" class="btn small" data-tpl="doc">프로필 문서</button>
+      </div>
+      <input type="hidden" id="template">
+      <label for="font">글꼴</label>
+      <select id="font"></select>
+      <label>색 조합</label>
+      <div class="swatches" id="swatches"></div>
+      <div class="colors">
+        <div><label for="main">메인</label><input type="color" id="main"></div>
+        <div><label for="accent">포인트</label><input type="color" id="accent"></div>
+        <div><label for="bg">배경</label><input type="color" id="bg"></div>
+        <div><label for="text">글자</label><input type="color" id="text"></div>
+      </div>
+      <label for="credit">하단 문구 (크레딧 등)</label>
+      <input type="text" id="credit" placeholder="예) made by @myaccount">
+    </details>
+
+    <div class="bottom-actions">
+      <button type="button" class="btn small" id="loadSample">예시 불러오기</button>
+      <button type="button" class="btn small" id="clearAll">전부 지우기</button>
+    </div>
+  </section>
+
+  <section class="preview">
+    <div class="toolbar">
+      <button type="button" class="btn small" id="toggleMobile">📱 모바일로 보기</button>
+      <button type="button" class="btn small" id="toggleCode">&lt;/&gt; 코드 보기</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="copyBtn">코드 복사</button>
+      <button type="button" class="btn primary" id="downloadBtn">HTML 다운로드</button>
+    </div>
+    <div class="stage" id="stage">
+      <iframe id="frame" title="미리보기"></iframe>
+      <textarea id="code" readonly hidden spellcheck="false"></textarea>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- 설정 ---------- */
+const GF = f => `https://fonts.googleapis.com/css2?family=${f}&display=swap`;
+const FONTS = {
+  pretendard: { label:'프리텐다드', css:"'Pretendard', -apple-system, sans-serif", href:'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css' },
+  gowun:    { label:'고운돋움',  css:"'Gowun Dodum', sans-serif",  href:GF('Gowun+Dodum') },
+  serif:    { label:'본명조',    css:"'Noto Serif KR', serif",     href:GF('Noto+Serif+KR:wght@400;600') },
+  myeongjo: { label:'나눔명조',  css:"'Nanum Myeongjo', serif",    href:GF('Nanum+Myeongjo:wght@400;700') },
+  hahmlet:  { label:'함렛',      css:"'Hahmlet', serif",           href:GF('Hahmlet:wght@400;600') },
+  system:   { label:'기본 글꼴', css:"-apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif", href:'' }
+};
+const PRESETS = [
+  { name:'화이트', main:'#222222', accent:'#7a7a7a', bg:'#ffffff', text:'#222222' },
+  { name:'벚꽃',   main:'#d98aa0', accent:'#b56b80', bg:'#fffafb', text:'#3d3438' },
+  { name:'세이지', main:'#7f9a8a', accent:'#5f7a6b', bg:'#f8faf8', text:'#2f3632' },
+  { name:'밤',     main:'#b7c0e8', accent:'#d8c79a', bg:'#16181f', text:'#e6e7ec' },
+  { name:'버건디', main:'#b5566b', accent:'#c9a27a', bg:'#1a1415', text:'#efe6e7' }
+];
+const FIELDS = ['pairName','tagline','aName','aSub','aImg','aDesc','aCall','bName','bSub','bImg','bDesc','bCall',
+  'symbol','anniversary','keywords','story','quote','quoteBy','credit','template','font','main','accent','bg','text'];
+const EMPTY = { symbol:'♥', template:'card', font:'pretendard', ...PRESETS[0] };
+delete EMPTY.name;
+const SAMPLE = {
+  ...EMPTY,
+  pairName:'새벽과 등불', tagline:'가장 어두운 시간에 서로를 찾아낸 두 사람',
+  aName:'캐릭터 이름', aSub:'작품명', aDesc:'무뚝뚝하지만 한번 마음을 준 사람은 끝까지 지키는 타입.\n밤마다 등불을 들고 성벽을 순찰한다.', aCall:'등불 씨',
+  bName:'드림주 이름', bSub:'성 아래 찻집 주인', bDesc:'잘 웃고 겁이 없다. 새벽마다 성벽 위로 따뜻한 차를 올려 보낸다.', bCall:'파수꾼님',
+  anniversary:'2024.03.14', keywords:'쌍방구원, 느린 연애, 새벽 산책',
+  story:'처음엔 그저 매일 새벽 올라오는 찻잔이었다.\n누가 보내는지도 모른 채 비워 돌려보내던 잔에, 어느 날 짧은 쪽지가 붙어 있었다.',
+  quote:'오늘도 무사히 돌아왔어. 그러니까, 내일도 차 끓여줘.', quoteBy:'캐릭터 이름', credit:'made by @myaccount'
+};
+let qa = [];
+let imgData = { aImg:'', bImg:'' };
+const STORE = 'dreampair-maker-v1';
+const $ = id => document.getElementById(id);
+
+/* ---------- 유틸 ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nl = s => esc(String(s ?? '').trim()).replace(/\n/g, '<br>');
+function safeUrl(u){
+  u = (u || '').trim();
+  if (/^https?:\/\//i.test(u) || /^data:image\//i.test(u)) return u;
+  if (/^[\w\-./]+\.(png|jpe?g|gif|webp|avif|svg)$/i.test(u)) return u; // 저장소 안의 상대경로
+  return '';
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* ---------- 결과물 HTML ---------- */
+const BASE_CSS = `
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--line:color-mix(in srgb,var(--text) 12%,transparent);--muted:color-mix(in srgb,var(--text) 55%,transparent)}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.8;word-break:keep-all;overflow-wrap:break-word;padding:72px 24px;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+h1,h2,h3{line-height:1.35;font-weight:600}
+p,dd{text-align:justify}
+.avatar{width:104px;height:104px;border-radius:50%;object-fit:cover;margin:0 auto 14px}
+.avatar.ph{display:grid;place-items:center;font-size:1.8em;background:var(--main);color:var(--bg)}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:28px;font-size:.88em;color:var(--accent)}
+.block{margin-top:48px}
+.block h2{font-size:.72em;font-weight:600;letter-spacing:.18em;color:var(--muted);margin-bottom:12px}
+blockquote{margin-top:48px;padding-left:16px;border-left:2px solid var(--main)}
+blockquote p{text-align:left}
+blockquote cite{display:block;margin-top:6px;font-size:.82em;font-style:normal;color:var(--muted)}
+.qa dt{font-weight:600}
+.qa dd{margin:2px 0 16px;color:var(--muted)}
+footer{margin-top:64px;padding-top:16px;border-top:1px solid var(--line);font-size:.75em;color:var(--muted);text-align:center}
+`;
+const TPL_CSS = {
+card: `
+.wrap{max-width:680px;margin:0 auto}
+.hero{text-align:center;margin-bottom:48px}
+.eyebrow{text-align:center;font-size:.68em;letter-spacing:.2em;color:var(--muted);margin-bottom:6px}
+.hero h1{font-size:1.9em}
+.tag{text-align:center;margin-top:6px;color:var(--muted)}
+.duo{display:grid;grid-template-columns:1fr auto 1fr;gap:28px;align-items:start}
+.person{text-align:center}
+.role{text-align:center;font-size:.68em;letter-spacing:.18em;color:var(--muted)}
+.name{font-size:1.15em;margin-top:2px}
+.sub{text-align:center;font-size:.85em;color:var(--muted)}
+.desc{margin-top:14px;font-size:.93em}
+.call{margin-top:12px;font-size:.85em;text-align:center;color:var(--accent)}
+.call span{color:var(--muted);margin-right:4px}
+.link{align-self:center;text-align:center;color:var(--main);font-size:1.3em;line-height:1}
+.link small{display:block;margin-top:8px;font-size:.55em;color:var(--muted);white-space:nowrap}
+.wrap .chips{justify-content:center}
+@media(max-width:600px){.duo{grid-template-columns:1fr;gap:36px}.hero h1{font-size:1.6em}}
+`,
+letter: `
+.paper{max-width:600px;margin:0 auto}
+.stamps{display:flex;align-items:center;gap:12px;margin-bottom:40px}
+.stamps .avatar{width:56px;height:56px;margin:0}
+.stamps .avatar.ph{font-size:1.1em}
+.stamps span{color:var(--main)}
+.dear{color:var(--muted);font-size:.9em}
+.paper h1{font-size:1.7em;margin-top:4px}
+.tag{margin-top:4px;color:var(--muted)}
+.letter-body{margin-top:32px}
+.profiles{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:48px;padding-top:28px;border-top:1px solid var(--line);font-size:.9em}
+.mini h3{font-size:1.05em}
+.mini .sub{color:var(--muted)}
+.mini .desc{margin-top:6px}
+.mini .call{margin-top:6px;color:var(--accent)}
+.sign{margin-top:56px;text-align:right}
+.sign p{text-align:right}
+.sign .date{font-size:.82em;color:var(--muted)}
+@media(max-width:600px){.profiles{grid-template-columns:1fr}}
+`,
+doc: `
+.doc{max-width:720px;margin:0 auto}
+.doc-head{display:flex;justify-content:space-between;font-size:.7em;letter-spacing:.18em;color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--text)}
+.doc h1{font-size:1.7em;margin-top:28px}
+.tag{margin-top:4px;color:var(--muted)}
+.doc-duo{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:36px}
+.doc-person .avatar{width:100%;height:auto;aspect-ratio:1;border-radius:0;margin:0 0 14px}
+.doc-person .avatar.ph{font-size:2.4em}
+table{width:100%;border-collapse:collapse;font-size:.9em}
+th,td{padding:8px 0;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{width:28%;font-weight:500;color:var(--muted);white-space:nowrap}
+.doc-person .desc{margin-top:12px;font-size:.92em}
+.doc-table{margin-top:32px}
+.doc .chips{margin:0}
+@media(max-width:600px){.doc-duo{grid-template-columns:1fr}}
+`
+};
+
+function avatar(P){
+  return P.img
+    ? `<img class="avatar" src="${esc(P.img)}" alt="${esc(P.name)}">`
+    : `<div class="avatar ph" aria-hidden="true">${esc(Array.from(P.name.trim())[0] || '?')}</div>`;
+}
+
+function buildParts(d){
+  const A = { name:d.aName.trim()||'캐릭터', sub:d.aSub.trim(), img:d.aImgSrc, desc:d.aDesc, call:d.aCall.trim() };
+  const B = { name:d.bName.trim()||'드림주', sub:d.bSub.trim(), img:d.bImgSrc, desc:d.bDesc, call:d.bCall.trim() };
+  const kws = d.keywords.split(/[,，#\n]/).map(s=>s.trim()).filter(Boolean);
+  const pair = esc(d.pairName.trim() || `${A.name} ${d.symbol} ${B.name}`);
+  const tag = d.tagline.trim() ? `<p class="tag">${esc(d.tagline.trim())}</p>` : '';
+  const anniv = esc(d.anniversary.trim());
+  const chips = kws.length ? `<ul class="chips">${kws.map(k=>`<li>#${esc(k)}</li>`).join('')}</ul>` : '';
+  const story = d.story.trim() ? `
+    <section class="block story">
+      <h2>STORY</h2>
+      <p>${nl(d.story)}</p>
+    </section>` : '';
+  const quote = d.quote.trim() ? `
+    <blockquote>
+      <p>“${nl(d.quote)}”</p>${d.quoteBy.trim() ? `
+      <cite>— ${esc(d.quoteBy.trim())}</cite>` : ''}
+    </blockquote>` : '';
+  const qaHtml = d.qa.length ? `
+    <section class="block">
+      <h2>Q &amp; A</h2>
+      <dl class="qa">${d.qa.map(x=>`
+        <dt>${esc(x.q)}</dt>
+        <dd>${nl(x.a)}</dd>`).join('')}
+      </dl>
+    </section>` : '';
+  const foot = d.credit.trim() ? `
+  <footer>${esc(d.credit.trim())}</footer>` : '';
+  return { A, B, pair, tag, anniv, chips, story, quote, qaHtml, foot, sym: esc(d.symbol) };
+}
+
+const TEMPLATES = {
+  card(d, p){
+    const person = (P, O, role) => `
+      <article class="person">
+        ${avatar(P)}
+        <p class="role">${role}</p>
+        <h3 class="name">${esc(P.name)}</h3>${P.sub ? `
+        <p class="sub">${esc(P.sub)}</p>` : ''}${P.desc.trim() ? `
+        <p class="desc">${nl(P.desc)}</p>` : ''}${P.call ? `
+        <p class="call"><span>${esc(O.name)}에게</span>“${esc(P.call)}”</p>` : ''}
+      </article>`;
+    return `
+<main class="wrap">
+  <header class="hero">
+    <p class="eyebrow">DREAM PAIR</p>
+    <h1>${p.pair}</h1>
+    ${p.tag}
+  </header>
+
+  <section class="duo">${person(p.A, p.B, 'CHARACTER')}
+    <div class="link">${p.sym}${p.anniv ? `<small>${p.anniv}</small>` : ''}</div>${person(p.B, p.A, 'DREAMER')}
+  </section>
+  ${p.chips}${p.story}${p.quote}${p.qaHtml}${p.foot}
+</main>`;
+  },
+
+  letter(d, p){
+    const mini = P => `
+      <div class="mini">
+        <h3>${esc(P.name)}</h3>${P.sub ? `
+        <p class="sub">${esc(P.sub)}</p>` : ''}${P.desc.trim() ? `
+        <p class="desc">${nl(P.desc)}</p>` : ''}${P.call ? `
+        <p class="call">부르는 호칭 · “${esc(P.call)}”</p>` : ''}
+      </div>`;
+    return `
+<main class="paper">
+  <div class="stamps">
+    ${avatar(p.A)}
+    <span>${p.sym}</span>
+    ${avatar(p.B)}
+  </div>
+  <p class="dear">Dear. ${esc(p.B.name)}</p>
+  <h1>${p.pair}</h1>
+  ${p.tag}
+  ${p.chips}${d.story.trim() ? `
+  <p class="letter-body">${nl(d.story)}</p>` : ''}${p.quote}
+  <div class="profiles">${mini(p.A)}${mini(p.B)}
+  </div>${p.qaHtml}
+  <div class="sign">${p.anniv ? `
+    <p class="date">${p.anniv}</p>` : ''}
+    <p class="from">From. ${esc(p.A.name)}</p>
+  </div>${p.foot}
+</main>`;
+  },
+
+  doc(d, p){
+    const person = (P, subLabel) => `
+      <div class="doc-person">
+        ${avatar(P)}
+        <table>
+          <tr><th>이름</th><td>${esc(P.name)}</td></tr>${P.sub ? `
+          <tr><th>${subLabel}</th><td>${esc(P.sub)}</td></tr>` : ''}${P.call ? `
+          <tr><th>호칭</th><td>“${esc(P.call)}”</td></tr>` : ''}
+        </table>${P.desc.trim() ? `
+        <p class="desc">${nl(P.desc)}</p>` : ''}
+      </div>`;
+    const rows = [
+      p.anniv && `<tr><th>기념일</th><td>${p.anniv}</td></tr>`,
+      p.chips && `<tr><th>키워드</th><td>${p.chips}</td></tr>`
+    ].filter(Boolean).join('');
+    return `
+<main class="doc">
+  <header class="doc-head"><span>PAIR PROFILE</span><span>${p.sym}</span></header>
+  <h1>${p.pair}</h1>
+  ${p.tag}
+  <div class="doc-duo">${person(p.A, '작품')}${person(p.B, '설정')}
+  </div>${rows ? `
+  <table class="doc-table">${rows}</table>` : ''}${p.story}${p.quote}${p.qaHtml}${p.foot}
+</main>`;
+  }
+};
+
+function generate(d){
+  const f = FONTS[d.font] || FONTS.pretendard;
+  const p = buildParts(d);
+  const tpl = TEMPLATES[d.template] ? d.template : 'card';
+  const fontLink = !f.href ? '' : f.href.includes('googleapis') ? `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${f.href}" rel="stylesheet">` : `
+<link href="${f.href}" rel="stylesheet">`;
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${p.pair}</title>${fontLink}
+<style>
+:root{--main:${d.main};--accent:${d.accent};--bg:${d.bg};--text:${d.text};--font:${f.css}}${BASE_CSS}${TPL_CSS[tpl]}</style>
+</head>
+<body>${TEMPLATES[tpl](d, p)}
+</body>
+</html>
+`;
+}
+
+/* ---------- 입력 처리 ---------- */
+function collect(){
+  const d = {};
+  FIELDS.forEach(k => d[k] = $(k).value);
+  d.qa = qa.filter(x => x.q.trim() || x.a.trim());
+  d.aImgSrc = imgData.aImg || safeUrl(d.aImg);
+  d.bImgSrc = imgData.bImg || safeUrl(d.bImg);
+  return d;
+}
+
+function render(){
+  const html = generate(collect());
+  $('frame').srcdoc = html;
+  $('code').value = html;
+  save();
+}
+let timer;
+const schedule = () => { clearTimeout(timer); timer = setTimeout(render, 150); };
+
+function save(){
+  const state = { fields:{}, qa, imgData };
+  FIELDS.forEach(k => state.fields[k] = $(k).value);
+  try { localStorage.setItem(STORE, JSON.stringify(state)); }
+  catch(e){
+    try { localStorage.setItem(STORE, JSON.stringify({ ...state, imgData:{aImg:'',bImg:''} })); } catch(_){}
+  }
+}
+
+function apply(fields, newQa, newImg){
+  FIELDS.forEach(k => { $(k).value = fields[k] ?? EMPTY[k] ?? ''; });
+  qa = (newQa || []).map(x => ({ q:x.q||'', a:x.a||'' }));
+  imgData = { aImg:'', bImg:'', ...(newImg || {}) };
+  renderQa(); syncTpl(); syncImgNotes(); render();
+}
+
+/* 문답 */
+function renderQa(){
+  const box = $('qaList');
+  box.innerHTML = '';
+  qa.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'qa-item';
+    el.innerHTML = `<div class="qa-top"><input type="text" placeholder="질문"><button type="button" class="btn small" title="삭제">✕</button></div><textarea placeholder="답변"></textarea>`;
+    const [q, del, a] = [el.querySelector('input'), el.querySelector('button'), el.querySelector('textarea')];
+    q.value = item.q; a.value = item.a;
+    q.oninput = () => { item.q = q.value; schedule(); };
+    a.oninput = () => { item.a = a.value; schedule(); };
+    del.onclick = () => { qa.splice(i, 1); renderQa(); render(); };
+    box.appendChild(el);
+  });
+}
+$('addQa').onclick = () => { qa.push({ q:'', a:'' }); renderQa(); $('qaList').lastChild.querySelector('input').focus(); };
+
+/* 템플릿 버튼 */
+function syncTpl(){ document.querySelectorAll('#tplSeg button').forEach(b => b.classList.toggle('on', b.dataset.tpl === $('template').value)); }
+document.querySelectorAll('#tplSeg button').forEach(b => b.onclick = () => { $('template').value = b.dataset.tpl; syncTpl(); render(); });
+
+/* 글꼴 / 색 */
+$('font').innerHTML = Object.entries(FONTS).map(([k,f]) => `<option value="${k}">${f.label}</option>`).join('');
+$('swatches').innerHTML = PRESETS.map((p,i) => `<button type="button" class="swatch" data-i="${i}"><i style="background:linear-gradient(135deg,${p.bg} 50%,${p.main} 50%)"></i>${p.name}</button>`).join('');
+document.querySelectorAll('.swatch').forEach(b => b.onclick = () => {
+  const p = PRESETS[b.dataset.i];
+  ['main','accent','bg','text'].forEach(k => $(k).value = p[k]);
+  render();
+});
+
+/* 이미지 파일 (작게 줄여서 HTML 안에 넣음) */
+function syncImgNotes(){
+  ['aImg','bImg'].forEach(k => {
+    const note = $(k + 'Note');
+    if (imgData[k]) {
+      const kb = Math.round(imgData[k].length * 0.75 / 1024);
+      note.innerHTML = `📎 파일 이미지 사용 중 (약 ${kb}KB, HTML 안에 포함됨) <button type="button" data-clear="${k}">지우기</button>`;
+      note.querySelector('button').onclick = () => { imgData[k] = ''; syncImgNotes(); render(); };
+    } else note.textContent = '';
+  });
+}
+document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => $(b.dataset.pick + 'File').click());
+['aImg','bImg'].forEach(k => {
+  $(k + 'File').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 640, scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        imgData[k] = c.toDataURL('image/webp', 0.88);
+        syncImgNotes(); render(); toast('이미지를 넣었어요');
+      };
+      img.onerror = () => toast('이미지를 읽지 못했어요');
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+});
+
+/* 입력 이벤트 */
+FIELDS.forEach(k => { const el = $(k); el.addEventListener('input', schedule); el.addEventListener('change', schedule); });
+
+/* 미리보기 도구 */
+$('toggleMobile').onclick = () => {
+  const on = $('stage').classList.toggle('mobile');
+  $('toggleMobile').textContent = on ? '🖥 넓게 보기' : '📱 모바일로 보기';
+};
+$('toggleCode').onclick = () => {
+  const showCode = $('code').hidden;
+  $('code').hidden = !showCode; $('frame').hidden = showCode;
+  $('toggleCode').textContent = showCode ? '👀 미리보기' : '</> 코드 보기';
+};
+$('copyBtn').onclick = async () => {
+  const html = generate(collect());
+  try { await navigator.clipboard.writeText(html); }
+  catch(e){ const c=$('code'); const h=c.hidden; c.hidden=false; c.value=html; c.select(); document.execCommand('copy'); c.hidden=h; }
+  toast('코드를 복사했어요');
+};
+$('downloadBtn').onclick = () => {
+  const d = collect();
+  const name = (d.pairName.trim() || 'dream-pair').replace(/[\\/:*?"<>|]/g, '').slice(0, 60) || 'dream-pair';
+  const blob = new Blob([generate(d)], { type:'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name + '.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('HTML 파일을 저장했어요');
+};
+$('loadSample').onclick = () => {
+  if (!confirm('지금 입력한 내용이 예시로 바뀌어요. 계속할까요?')) return;
+  apply(SAMPLE, [{ q:'처음 만난 곳은?', a:'성벽 아래 계단. 찻잔을 떨어뜨릴 뻔했다.' }]);
+};
+$('clearAll').onclick = () => {
+  if (!confirm('입력한 내용을 전부 지울까요?')) return;
+  apply(EMPTY, []);
+};
+
+/* 시작 */
+(function init(){
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORE)); } catch(e){}
+  if (saved && saved.fields) apply(saved.fields, saved.qa, saved.imgData);
+  else apply(SAMPLE, [{ q:'처음 만난 곳은?', a:'성벽 아래 계단. 찻잔을 떨어뜨릴 뻔했다.' }]);
+})();
+</script>
+</body>
+</html>
